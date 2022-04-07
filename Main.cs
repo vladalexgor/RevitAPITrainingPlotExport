@@ -30,6 +30,8 @@ namespace RevitAPITrainingPlotExport
             var viewSets = new List<ViewSet>();
 
             PrintManager printManager = doc.PrintManager;
+            printManager.SelectNewPrintDriver("PDFCreator");
+            printManager.PrintRange = PrintRange.Select;
             ViewSheetSetting viewSheetSetting = printManager.ViewSheetSetting;
 
             foreach (var groupedSheet in groupedSheets)
@@ -56,6 +58,34 @@ namespace RevitAPITrainingPlotExport
                     viewSheetSetting.SaveAs($"{groupedSheet.Key}_{Guid.NewGuid()}");
                     ts.Commit();
                 }
+
+                bool isFormartSelected = false;
+                foreach (PaperSize paperSize in printManager.PaperSizes)
+                {
+                    if (string.Equals(groupedSheet.Key, "А4К") &&
+                        string.Equals(paperSize.Name, "A4"))
+                    {
+                        printManager.PrintSetup.CurrentPrintSetting.PrintParameters.PaperSize = paperSize;
+                        printManager.PrintSetup.CurrentPrintSetting.PrintParameters.PageOrientation = PageOrientationType.Portrait;
+                        isFormartSelected = true;
+                    }
+                    else if (string.Equals(groupedSheet.Key, "А3А") &&
+                        string.Equals(paperSize.Name, "A3"))
+                    {
+                        printManager.PrintSetup.CurrentPrintSetting.PrintParameters.PaperSize = paperSize;
+                        printManager.PrintSetup.CurrentPrintSetting.PrintParameters.PageOrientation = PageOrientationType.Landscape;
+                        isFormartSelected = true;
+                    }
+                }
+
+                if (!isFormartSelected)
+                {
+                    TaskDialog.Show("Ошибка", "Не найден формат");
+                    return Result.Failed;
+                }
+
+                printManager.CombinedFile = false;
+                printManager.SubmitPrint();
             }
 
 
