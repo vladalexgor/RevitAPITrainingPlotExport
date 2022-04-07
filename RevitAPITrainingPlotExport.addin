@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+	<AddIn Type="Command">
+		<Assembly>"C:\ProgramData\RevitAPI\RevitAPITrainingPlotExport.dll"</Assembly>
+		<AddInId>3EEB0D56-D252-46D2-806D-E36ED5F51B61</AddInId>
+		<FullClassName>RevitAPITrainingPlotExport.Main</FullClassName>
+		<VendorId>ADSK</VendorId>
+		<Text>Тема 8. Печать и экспорт</Text>
+	</AddIn>
+</RevitAddIns>
