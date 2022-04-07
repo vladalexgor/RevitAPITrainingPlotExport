@@ -17,79 +17,21 @@ namespace RevitAPITrainingPlotExport
         {
             Document doc = commandData.Application.ActiveUIDocument.Document;
 
-            var sheets = new FilteredElementCollector(doc)
-                                .WhereElementIsNotElementType()
-                                .OfClass(typeof(ViewSheet))
-                                .Cast<ViewSheet>()
-                                .ToList();
-
-            var groupedSheets = sheets.GroupBy(sheet => doc.GetElement(new FilteredElementCollector(doc, sheet.Id)
-                                        .OfCategory(BuiltInCategory.OST_TitleBlocks)
-                                        .FirstElementId()).Name);
-
-            var viewSets = new List<ViewSet>();
-
-            PrintManager printManager = doc.PrintManager;
-            printManager.SelectNewPrintDriver("PDFCreator");
-            printManager.PrintRange = PrintRange.Select;
-            ViewSheetSetting viewSheetSetting = printManager.ViewSheetSetting;
-
-            foreach (var groupedSheet in groupedSheets)
+            using (var ts = new Transaction(doc, "export dwg"))
             {
-                if (groupedSheet.Key == null)
-                    continue;
-
-                var viewSet = new ViewSet();
-
-                var sheetsOfGroup = groupedSheet.Select(s => s).ToList();
-                foreach (var sheet in sheetsOfGroup)
-                {
-                    viewSet.Insert(sheet);
-                }
-
-                viewSets.Add(viewSet);
-
-                printManager.PrintRange = PrintRange.Select;
-                viewSheetSetting.CurrentViewSheetSet.Views = viewSet;
-
-                using (var ts = new Transaction(doc, "Create view set"))
-                {
-                    ts.Start();
-                    viewSheetSetting.SaveAs($"{groupedSheet.Key}_{Guid.NewGuid()}");
-                    ts.Commit();
-                }
-
-                bool isFormartSelected = false;
-                foreach (PaperSize paperSize in printManager.PaperSizes)
-                {
-                    if (string.Equals(groupedSheet.Key, "А4К") &&
-                        string.Equals(paperSize.Name, "A4"))
-                    {
-                        printManager.PrintSetup.CurrentPrintSetting.PrintParameters.PaperSize = paperSize;
-                        printManager.PrintSetup.CurrentPrintSetting.PrintParameters.PageOrientation = PageOrientationType.Portrait;
-                        isFormartSelected = true;
-                    }
-                    else if (string.Equals(groupedSheet.Key, "А3А") &&
-                        string.Equals(paperSize.Name, "A3"))
-                    {
-                        printManager.PrintSetup.CurrentPrintSetting.PrintParameters.PaperSize = paperSize;
-                        printManager.PrintSetup.CurrentPrintSetting.PrintParameters.PageOrientation = PageOrientationType.Landscape;
-                        isFormartSelected = true;
-                    }
-                }
-
-                if (!isFormartSelected)
-                {
-                    TaskDialog.Show("Ошибка", "Не найден формат");
-                    return Result.Failed;
-                }
-
-                printManager.CombinedFile = false;
-                printManager.SubmitPrint();
+                ts.Start();
+                ViewPlan viewPlan = new FilteredElementCollector(doc)
+                                    .OfClass(typeof(ViewPlan))
+                                    .Cast<ViewPlan>()
+                                    .FirstOrDefault(v => v.ViewType == ViewType.FloorPlan &&
+                                                        v.Name.Equals("Level 1"));
+                var dwgOption = new DWGExportOptions();
+                doc.Export(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "export.dwg",
+                    new List<ElementId> { viewPlan.Id }, dwgOption);
+                ts.Commit();
             }
 
-
-            return Result.Succeeded;
+                return Result.Succeeded;
         }
     }
 }
